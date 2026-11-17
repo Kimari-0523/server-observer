@@ -1,0 +1,9 @@
+node_modules
+.git
+.runtime
+**/.runtime
+data
+.env*
+dist
+test
+**/.wrangler

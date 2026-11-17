@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+.runtime/
+data/
+.env
+.env.*
+!.env.example
+**/.dev.vars*
+!**/.dev.vars.example
+**/.wrangler/
+*.sqlite*
+*.db
+*.key
+*.pem
+known_hosts
+*.log

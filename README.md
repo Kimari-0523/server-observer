@@ -7,7 +7,19 @@
 | 自建服务器 | [server-observer-self-hosted-v0.1.0.zip](server-observer-self-hosted-v0.1.0.zip) | [自建部署教程](SELF_HOSTED.md) |
 | 纯 Cloudflare | [server-observer-cloudflare-v0.1.0.zip](server-observer-cloudflare-v0.1.0.zip) | [Cloudflare 部署教程](CLOUDFLARE.md) |
 
-完整可修改源码、测试、依赖锁文件和对应部署配置均在两个 ZIP 内，解压后直接使用。仓库根目录提供两份可在线阅读的教程及安装包 SHA-256；不包含任何现网密钥、账号、Webhook、SSH 私钥或数据库。
+完整可修改源码、测试、依赖锁文件和部署配置直接保存在仓库目录中，可在线浏览或 clone 后使用。两个 ZIP 作为额外的安装下载保留；不包含任何现网密钥、账号、Webhook、SSH 私钥或数据库。
+
+| 源码目录 | 用途 |
+| --- | --- |
+| `self-hosted/` | 自建版 Node 服务、Dockerfile、Compose 与安装脚本 |
+| `cloudflare/` | 纯 Cloudflare Worker / SQLite Durable Object 与部署配置 |
+| `shared/`、`backend/` | 共用存储、登录、告警、维护验证及 AI 命令逻辑 |
+| `web/` | 看板、登录、配置及终端网页 |
+| `agent/` | Ubuntu / Windows Agent 和安装脚本 |
+| `scripts/`、`test/` | 初始化、构建、打包、扫描及测试 |
+| `third-party/` | 第三方组件许可证 |
+
+自建版和纯 Cloudflare 版共用代码，但部署入口分开；可以直接阅读 [自建服务入口](self-hosted/server.mjs) 或 [纯 Cloudflare 入口](cloudflare/worker.mjs)。
 
 ## 功能
 

@@ -1,0 +1,13 @@
+{
+  "name": "server-observer",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "durable_objects": {"bindings": [{"name":"HUB","class_name":"MonitorHub"}]},
+  "migrations": [{"tag":"v1","new_sqlite_classes":["MonitorHub"]}],
+  "triggers": {"crons":["* * * * *"]},
+  "rules": [{"type":"Text","globs":["**/*.sql"],"fallthrough":true}],
+  "vars": {"PUBLIC_ORIGIN":"https://monitor.example.com","REPORT_INTERVAL_SECONDS":"120"},
+  "observability": {"enabled":true}
+}

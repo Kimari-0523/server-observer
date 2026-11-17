@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-17T09:27:12.362Z",
+  "packages": [
+    {
+      "name": "server-observer-self-hosted-v0.1.0.zip",
+      "sha256": "da4be6af6ca6d6e2c3dce2572ce2d22401562e262eba86023b4e77a7141e9550",
+      "archive_manifest_verified": true,
+      "manifest_files": 96,
+      "npm_ci_production_dependencies": true,
+      "isolated_adapter": true
+    },
+    {
+      "name": "server-observer-cloudflare-v0.1.0.zip",
+      "sha256": "1a87b8d77e725a6298724b66d68d4037e46ed5c9a5e0a3e565c1568ac0a2eb4b",
+      "archive_manifest_verified": true,
+      "manifest_files": 93,
+      "npm_ci_production_dependencies": true,
+      "isolated_adapter": true
+    }
+  ],
+  "cloudflare_archive_independent_wrangler_dry_run": true,
+  "real_cloud_deployment_performed": false
+}

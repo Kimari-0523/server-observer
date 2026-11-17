@@ -1,0 +1,5 @@
+export function installationCommands(token,origin=location.origin){
+  if(!/^[A-Za-z0-9_-]{32,128}$/.test(token))throw new Error('接入令牌格式无效');
+  const url=new URL(origin);if(url.origin!==origin||!(/^[A-Za-z0-9.-]+$/.test(url.hostname)||/^\[[0-9A-Fa-f:.]+\]$/.test(url.hostname))||url.protocol!=='https:'&&!(url.protocol==='http:'&&url.hostname==='127.0.0.1'))throw new Error('安装源地址无效');
+  return {ubuntu:"bash -o pipefail -c 'curl -fsSL --connect-timeout 15 --max-time 120 "+origin+"/install/install-ubuntu.sh | { if [ \"$(id -u)\" -eq 0 ]; then bash -s -- "+token+"; else sudo bash -s -- "+token+"; fi; }'",windows:"& { $ErrorActionPreference='Stop'; [Net.ServicePointManager]::SecurityProtocol=[Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; $r=Invoke-WebRequest -UseBasicParsing -Uri '"+origin+"/install/install-windows.ps1'; $s=$r.Content; if($s -is [byte[]]){$s=[Text.Encoding]::UTF8.GetString($s)}; if([string]::IsNullOrWhiteSpace([string]$s) -or [string]$s -notmatch '^\\s*param\\('){throw 'Installer download was empty or invalid'}; & ([scriptblock]::Create([string]$s)) -Token '"+token+"' }"};
+}

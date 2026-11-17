@@ -1,0 +1,223 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Server Observer AI 操作接口",
+    "version": "1.0.0",
+    "description": "先由用户完成账号或已配置的 SSO 登录并输入维护密码，在 AI 操作与审批 中选择服务器和人工确认/自动执行，生成访问令牌。此接口无需模型 API Key。令牌随当前维护网页退出、关闭或后端重启而失效。人工确认命令只进入 pending，必须在网页点击确认；AI 不能批准命令或更改模式。通道断开或结果未知时不自动重试。取消是终止请求，已发生的修改不会回滚。输出上限 64 KiB，命令记录保留 30 天。"
+  },
+  "servers": [
+    {
+      "url": "__PUBLIC_ORIGIN__/api/ai/v1"
+    }
+  ],
+  "security": [
+    {
+      "AIGrant": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "AIGrant": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "so_ai_...",
+        "description": "维护验证后由网页创建的受限令牌。请勿把维护密码发给 AI。"
+      }
+    },
+    "schemas": {
+      "CommandRequest": {
+        "type": "object",
+        "required": [
+          "server_id",
+          "command",
+          "request_id"
+        ],
+        "properties": {
+          "server_id": {
+            "type": "string",
+            "description": "GET /servers 返回的 id"
+          },
+          "command": {
+            "type": "string",
+            "description": "Ubuntu 使用 Bash；Windows 使用 PowerShell。最多 16384 UTF-8 字节。"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "description": "同一授权中的幂等键。轮询和重试时重复使用，不同内容不可复用。"
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 300,
+            "default": 60
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "paths": {
+    "/servers": {
+      "get": {
+        "operationId": "listAuthorizedServers",
+        "summary": "列出授权服务器与命令通道状态",
+        "responses": {
+          "200": {
+            "description": "服务器数组，含 id、platform、commands_available"
+          },
+          "401": {
+            "description": "令牌无效或维护授权已结束"
+          },
+          "403": {
+            "description": "目标服务器不在授权范围"
+          },
+          "409": {
+            "description": "Agent 未连接、并发已满或 request_id 冲突"
+          },
+          "429": {
+            "description": "提交频率或待确认数量超限"
+          },
+          "503": {
+            "description": "监控后端暂不可达，不会在边缘执行命令"
+          }
+        }
+      }
+    },
+    "/commands": {
+      "post": {
+        "operationId": "submitCommand",
+        "summary": "提交命令，执行方式由维护人员预设的授权决定",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandRequest"
+              },
+              "examples": {
+                "ubuntu": {
+                  "value": {
+                    "server_id": "从列表获取",
+                    "command": "hostname",
+                    "request_id": "unique-request-001",
+                    "timeout_seconds": 30
+                  }
+                },
+                "windows": {
+                  "value": {
+                    "server_id": "从列表获取",
+                    "command": "Get-Service | Select-Object -First 5 Name,Status | ConvertTo-Json",
+                    "request_id": "unique-request-002",
+                    "timeout_seconds": 30
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "命令记录，含 id、status；manual 为 pending，auto 下发后为 dispatching/running。使用 GET /commands/{id} 轮询。"
+          },
+          "400": {
+            "description": "命令参数无效。不能提交 mode 或 shell 字段。"
+          },
+          "401": {
+            "description": "令牌无效或维护授权已结束"
+          },
+          "403": {
+            "description": "目标服务器不在授权范围"
+          },
+          "409": {
+            "description": "Agent 未连接、并发已满或 request_id 冲突"
+          },
+          "429": {
+            "description": "提交频率或待确认数量超限"
+          },
+          "503": {
+            "description": "监控后端暂不可达，不会在边缘执行命令"
+          }
+        }
+      }
+    },
+    "/commands/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getCommandResult",
+        "summary": "查询此令牌提交的命令状态和输出",
+        "responses": {
+          "200": {
+            "description": "含 status、stdout、stderr、exit_code、error、output_truncated。状态：pending/dispatching/running/succeeded/failed/timed_out/cancelled/rejected/unknown。"
+          },
+          "401": {
+            "description": "令牌无效或维护授权已结束"
+          },
+          "403": {
+            "description": "目标服务器不在授权范围"
+          },
+          "404": {
+            "description": "命令不存在或属于其他授权"
+          },
+          "409": {
+            "description": "Agent 未连接、并发已满或 request_id 冲突"
+          },
+          "429": {
+            "description": "提交频率或待确认数量超限"
+          },
+          "503": {
+            "description": "监控后端暂不可达，不会在边缘执行命令"
+          }
+        }
+      }
+    },
+    "/commands/{id}/cancel": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "cancelCommand",
+        "summary": "取消待确认命令或请求终止正在运行的命令",
+        "responses": {
+          "200": {
+            "description": "命令记录；终止为尽力执行，无法回滚已有修改"
+          },
+          "401": {
+            "description": "令牌无效或维护授权已结束"
+          },
+          "403": {
+            "description": "目标服务器不在授权范围"
+          },
+          "409": {
+            "description": "Agent 未连接、并发已满或 request_id 冲突"
+          },
+          "429": {
+            "description": "提交频率或待确认数量超限"
+          },
+          "503": {
+            "description": "监控后端暂不可达，不会在边缘执行命令"
+          }
+        }
+      }
+    }
+  }
+}

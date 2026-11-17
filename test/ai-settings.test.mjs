@@ -1,0 +1,5 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readAISettings,saveAISettings,validateAISettings} from '../shared/ai-settings.js';
+test('model API keys are encrypted at rest and decrypt only with the correct secret',async()=>{let stored;const env={APP_KEY:'test-secret',DB:{prepare(){return {bind(value){stored=value;return this;},async run(){},async first(){return stored?{value:stored}:null;}};}}};assert.deepEqual(await readAISettings(env),{base_url:'',model:'',api_key:''});await saveAISettings(env,{base_url:'https://model.example/v1/',model:'test-model',api_key:'private-test-key'});assert(!stored.includes('private-test-key'));assert.equal((await readAISettings(env)).api_key,'private-test-key');await assert.rejects(()=>readAISettings({...env,APP_KEY:'wrong-secret'}));});
+test('model config rejects embedded credentials, insecure endpoints and header injection',()=>{for(const value of [{base_url:'http://model.example'},{base_url:'https://user:pass@model.example/v1'},{base_url:'https://model.example?key=secret'},{api_key:'secret\r\nheader:injection'}])assert.throws(()=>validateAISettings(value));});

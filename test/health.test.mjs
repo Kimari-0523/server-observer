@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {serverHealth} from '../web/health.js';
+import {mergeHeartbeats} from '../shared/server-view.js';
+const now=1000;
+test('fresh independent heartbeat keeps a host online when metric collection has stalled',()=>{const s=serverHealth({last_seen:600,latest:{metrics:{cpu_percent:7}},watchdog_last_seen:990},now);assert(s.online&&s.degraded&&!s.metricsFresh);assert.match(s.label,/指标采集异常/);assert.match(s.note,/缓存数据/);});
+test('an authenticated live agent channel proves connectivity even without recent metrics',()=>{const s=serverHealth({last_seen:600,latest:{},remote:{connected:true}},now);assert(s.online&&s.degraded);});
+test('fresh metrics prove life when the independent channel is unavailable',()=>{const s=serverHealth({last_seen:990,latest:{metrics:{}},watchdog_last_seen:500},now);assert(s.online&&!s.degraded);});
+test('a host with stale metrics, heartbeat and disconnected command channel is offline',()=>{const s=serverHealth({last_seen:600,latest:{},watchdog_last_seen:600,remote:{connected:false}},now);assert(!s.online);assert.match(s.label,/失联/);});
+test('partial counter errors keep basic metrics online and clearly mark degradation',()=>{const s=serverHealth({last_seen:990,latest:{collection_errors:['network']}},now);assert(s.online&&s.degraded&&s.metricsFresh);assert.match(s.label,/部分指标/);});
+test('watchdog-only fallback distinguishes live heartbeat from unavailable detailed monitoring',()=>{const s=serverHealth({watchdog_only:true,last_seen:990,latest:null},now);assert(s.online&&s.degraded&&!s.metricsFresh);assert.match(s.label,/详细监测暂不可达/);});
+test('independent heartbeats join only matching server identities',()=>{const result=mergeHeartbeats([{id:'a',last_seen:1},{id:'b',last_seen:2}],[{id:'b',last_seen:990},{id:'other',last_seen:999}]);assert.equal(result[0].watchdog_last_seen,null);assert.equal(result[1].watchdog_last_seen,990);assert.equal(result[1].last_seen,2);});

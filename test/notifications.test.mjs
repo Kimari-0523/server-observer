@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readNotifications,saveNotifications} from '../shared/notifications.js';
+function env(){let value;return {APP_KEY:'test-encryption-secret',DB:{prepare(sql){return {bind(v){value=v;return this;},async run(){},async first(){return value?{value}:null;}};}},stored(){return value;},tamper(){const v=JSON.parse(value);v.data=v.data.slice(0,-4)+'AAAA';value=JSON.stringify(v);}};}
+test('notification credentials are encrypted at rest and can be recovered',async()=>{const e=env(),v={webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/private-webhook',secret:'private-signature'};await saveNotifications(e,v);assert(!e.stored().includes('private-webhook'));assert(!e.stored().includes('private-signature'));assert.deepEqual(await readNotifications(e),v);e.tamper();await assert.rejects(()=>readNotifications(e));});
+test('notification endpoint rejects arbitrary hosts and insecure schemes',async()=>{for(const webhook of ['http://open.feishu.cn/open-apis/bot/v2/hook/test','https://open.feishu.cn.evil.test/open-apis/bot/v2/hook/test','https://127.0.0.1/private'])await assert.rejects(()=>saveNotifications(env(),{webhook,secret:''}));});

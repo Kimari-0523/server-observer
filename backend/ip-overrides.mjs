@@ -1,0 +1,2 @@
+import {isIP} from 'node:net';
+export function normalizeIPOverrides(value){if(!value||typeof value!=='object'||Array.isArray(value))throw Object.assign(new Error('IP 设置无效'),{status:400});const output={};for(const key of ['public_ipv4','private_ipv4']){const raw=value[key]??'';if(typeof raw!=='string')throw Object.assign(new Error('IP 必须为 IPv4 文本'),{status:400});const ip=raw.trim();if(ip&&isIP(ip)!==4)throw Object.assign(new Error('请填写有效 IPv4，留空恢复自动检测'),{status:400});if(ip)output[key]=ip;}return output;}

@@ -14,10 +14,10 @@
 
 ## 2. 安装依赖
 
-下载校验 `server-observer-cloudflare-v0.1.0.zip`，解压：
+下载校验 `server-observer-cloudflare-v0.2.0.zip`，解压：
 
 ```sh
-unzip server-observer-cloudflare-v0.1.0.zip -d server-observer-cloudflare
+unzip server-observer-cloudflare-v0.2.0.zip -d server-observer-cloudflare
 cd server-observer-cloudflare
 npm ci
 npm run build
@@ -60,7 +60,7 @@ node node_modules/wrangler/bin/wrangler.js secret bulk .runtime/worker-secrets.j
 
 普通完成 SSO 的用户可查看；服务器操作与配置仍需维护密码。登录方式的配置额外限定本地管理员。没有用户自注册，也没有默认密码。
 
-每台机器分别取得指标/反向通道凭据和独立心跳凭据。命令按系统选择 Bash / PowerShell。SSH/Shell 入口使用 Agent 终端，不是上传 SSH 私钥。人工确认模式批准前不执行；自动模式必须显式选择主机和模式，模型不能扩大范围。
+每台机器分别取得指标/反向通道凭据和独立心跳凭据。命令按系统选择 Bash / PowerShell。SSH/Shell 入口使用 Agent 终端，不是上传 SSH 私钥。长期 AI 授权在客户端逐条向人员提问，明确同意后才执行，日常不需要回网页。网页 AI 对话也保留人工确认。
 
 ## 5. 为什么主机故障仍能告警
 
@@ -70,10 +70,14 @@ Worker Cron / DO alarm 检查 DO 中的心跳，至少 180 秒无心跳后产生
 
 ## 6. 维护与备份
 
-在 Cloudflare 控制台查看 Cron 执行、Worker 错误、DO duration / rowsWritten / storage。告警队列成功投递记录保留 90 天，命令/审计 30 天；未投递队列保留重试。升级会清空内存维护会话、临时授权及对话，Agent 自动重连，已派发但断线的命令不会自动重试。
+在 Cloudflare 控制台查看 Cron 执行、Worker 错误、DO duration / rowsWritten / storage。告警队列成功投递记录保留 90 天，AI 命令及审计持久保留（须自行规划容量）；未投递队列保留重试。升级会清空内存维护会话、临时授权及对话，Agent 自动重连，已派发但断线的命令不会自动重试。
 
 备份 `.runtime` 中 APP_KEY 与 Secret 清单（离线加密）、Worker 版本/配置、数据库。不要依赖从 Cloudflare 界面读回 Secret 明文。Durable Object 的备份恢复与 D1 不同，可参考 [SQLite DO 恢复能力](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/#point-in-time-recovery-api)；本包没有实现网页数据导出/一键恢复，正式长期运行前应制定并演练独立备份流程。不要直接删除 namespace 作为排错手段。
 
 ## 7. 验证范围
 
-本机 Miniflare 实际运行了 SQLite DO、登录、接入、心跳、两盘报告、WSS、人工/自动 PowerShell 派发及撤权，并通过 Wrangler dry-run。尚未在新 Cloudflare 账户执行云端部署、真人飞书/OIDC 回调或整机故障演练；协议测试不能替代这些验收。首次发布后先用测试主机和测试群验证，详见 [VALIDATION.md](VALIDATION.md)。
+本机 Miniflare 实际运行了 SQLite DO、登录、接入、心跳、两盘报告、WSS、人工网页确认、客户端确认的 PowerShell 派发、未来主机读取及撤权，并通过 Wrangler dry-run。尚未在新 Cloudflare 账户执行云端部署、真人飞书/OIDC 回调或整机故障演练；协议测试不能替代这些验收。首次发布后先用测试主机和测试群验证，详见 [VALIDATION.md](VALIDATION.md)。
+
+## AI 工具接入
+
+部署后进入 **AI操作接口** 创建具名长期授权，按照 [AI 接入教程](docs/AI_ACCESS.md)配置 MCP、CLI 或 HTTP 适配器。[ai-client/](ai-client/README.md) 已随安装包包含；命令必须逐条取得人员答复，不需要日常回网页审批。

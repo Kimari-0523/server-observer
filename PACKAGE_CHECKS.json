@@ -1,23 +1,25 @@
 {
-  "date": "2026-11-17T09:27:12.362Z",
-  "packages": [
+  "date": "2026-11-19",
+  "version": "0.2.0",
+  "archives": [
     {
-      "name": "server-observer-self-hosted-v0.1.0.zip",
-      "sha256": "da4be6af6ca6d6e2c3dce2572ce2d22401562e262eba86023b4e77a7141e9550",
-      "archive_manifest_verified": true,
-      "manifest_files": 96,
-      "npm_ci_production_dependencies": true,
-      "isolated_adapter": true
+      "target": "self-hosted",
+      "files": 105,
+      "sha256": "09bc5107dfe9a44e35bfc533fe464304def06a2ef9b37548d7f3395c16e72c15",
+      "ai_client_files": 5,
+      "guides_included": true,
+      "separate_adapter": true
     },
     {
-      "name": "server-observer-cloudflare-v0.1.0.zip",
-      "sha256": "1a87b8d77e725a6298724b66d68d4037e46ed5c9a5e0a3e565c1568ac0a2eb4b",
-      "archive_manifest_verified": true,
-      "manifest_files": 93,
-      "npm_ci_production_dependencies": true,
-      "isolated_adapter": true
+      "target": "cloudflare",
+      "files": 102,
+      "sha256": "968d161f56c01280c9137dc14d633d61992bdac28ee6a0be4bf3b243075cc038",
+      "ai_client_files": 5,
+      "guides_included": true,
+      "separate_adapter": true
     }
   ],
-  "cloudflare_archive_independent_wrangler_dry_run": true,
-  "real_cloud_deployment_performed": false
+  "credentials_included": false,
+  "test_record": "release-validation.json",
+  "note": "Source and adapter tests passed; fresh-host and new Cloudflare-account deployment are not claimed."
 }

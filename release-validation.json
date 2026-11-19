@@ -1,39 +1,20 @@
 {
-  "version": "0.1.0",
-  "date": "2026-11-17T09:27:10.615Z",
-  "node": "v24.22.1",
-  "platform": "win32",
+  "date": "2026-11-19",
+  "version": "0.2.0",
+  "ai_api_version": "2.2.0",
   "tests": {
-    "total": 97,
-    "passed": 97,
+    "node": 104,
+    "python_connector": 20,
     "failed": 0,
-    "notes": "Full suite plus the sanitized identity fixture rerun passed. Includes real Windows PowerShell, self-hosted HTTP/WebSocket, Miniflare SQLite DO/WebSocket, mock signed OIDC and mock AI model bridge."
+    "skipped": 0
   },
-  "ui": {
-    "local_account_login": true,
-    "maintenance_gate": true,
-    "feishu_oidc_configuration_entry": true,
-    "two_themes": true,
-    "multi_disk_details": true,
-    "logout": true
-  },
-  "build": {
-    "wrangler_dry_run": true,
-    "worker_kib": 762.85,
-    "deploys_to_cloudflare": false
-  },
-  "scan": {
-    "files_checked": 101,
-    "known_credential_and_resource_values_checked": 15,
-    "brand_and_original_host_metadata": "none found"
-  },
-  "production_changes": false,
-  "not_performed": [
-    "fresh Linux/Windows end-to-end install",
-    "new Docker host/Caddy certificate deployment",
-    "actual new Cloudflare account deployment",
-    "live Feishu/OIDC login",
-    "live Feishu notification and power-off drill",
-    "independent security audit"
-  ]
+  "adapters": [
+    "self-hosted Node/SQLite with real loopback HTTP/WSS",
+    "pure Cloudflare Worker/SQLite Durable Object in Miniflare"
+  ],
+  "wrangler_dry_run": true,
+  "new_account_cloudflare_deploy": false,
+  "fresh_host_install": false,
+  "all_client_brands_tested": false,
+  "secrets_included": false
 }

@@ -9,10 +9,10 @@
 - 一般无需开放新的远程命令端口。公网 HTTPS 用 443；只有选用 Caddy 自动证书时额外使用 80。
 - 若已有宝塔/Nginx/Caddy 等业务代理，保留原代理并新增专用站点，不让安装脚本接管其端口。
 
-下载 `server-observer-self-hosted-v0.1.0.zip` 和 `SHA256SUMS`，核对压缩包 SHA-256，解压到新目录。不要解压覆盖现有应用。
+下载 `server-observer-self-hosted-v0.2.0.zip` 和 `SHA256SUMS`，核对压缩包 SHA-256，解压到新目录。不要解压覆盖现有应用。
 
 ```sh
-unzip server-observer-self-hosted-v0.1.0.zip -d server-observer
+unzip server-observer-self-hosted-v0.2.0.zip -d server-observer
 cd server-observer
 bash self-hosted/install.sh
 ```
@@ -99,3 +99,7 @@ curl -fsS http://127.0.0.1:8788/healthz
 已安装 Node.js 24 / npm 时可不使用 Docker：`npm ci --omit=dev`、`npm run build`、`node scripts/setup.mjs self-hosted`。将 `.env` 的 DATA_DIR 改为实际可写目录、LISTEN_HOST 改为 `127.0.0.1`，再 `npm start`，用自己的服务管理器守护进程并配置 HTTPS 反代。账号和维护密码初始化流程相同。
 
 本次已验证源码、真实本机 HTTP/WebSocket 与 Windows 命令执行组件；未在新空白 Linux/Docker 主机实际执行完整安装和证书申请，请按 [VALIDATION.md](VALIDATION.md) 做首次部署验收。
+
+## AI 工具接入
+
+部署后进入 **AI操作接口** 创建具名长期授权，按照 [AI 接入教程](docs/AI_ACCESS.md)配置 MCP、CLI 或 HTTP 适配器。[ai-client/](ai-client/README.md) 已随安装包包含；命令必须逐条取得人员答复，不需要日常回网页审批。

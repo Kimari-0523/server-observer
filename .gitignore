@@ -15,3 +15,5 @@ data/
 *.pem
 known_hosts
 *.log
+**/.secrets/
+**/__pycache__/

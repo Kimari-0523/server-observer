@@ -2,12 +2,18 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Server Observer AI 操作接口",
-    "version": "1.0.0",
-    "description": "先由用户完成账号或已配置的 SSO 登录并输入维护密码，在 AI 操作与审批 中选择服务器和人工确认/自动执行，生成访问令牌。此接口无需模型 API Key。令牌随当前维护网页退出、关闭或后端重启而失效。人工确认命令只进入 pending，必须在网页点击确认；AI 不能批准命令或更改模式。通道断开或结果未知时不自动重试。取消是终止请求，已发生的修改不会回滚。输出上限 64 KiB，命令记录保留 30 天。"
+    "version": "2.2.0",
+    "description": "账号密码、飞书或 OIDC 登录并维护验证后填写授权名称创建长期令牌，创建人自动读取当前登录姓名并记录时间。令牌哈希存储，手动撤销前有效，读取全部当前及未来服务器的监测数据和最多365天历史，不返回凭据。日常使用脱离网页：命令先 pending，由可信客户端通过 MCP 原生交互或本机窗口取得人员确认，再提交绑定命令哈希的确认决定。确认接口属于客户端委托权限；服务端记录 client_reported，不伪装为网页登录者本人再次确认。连接器不把确认方法或令牌暴露给模型；没有确认能力不得自动执行。命令、确认来源与结果在服务器持久审计，未知结果不得自动重试。 通用客户端协议：MCP stdio、人员可操作的 CLI 或可信 HTTP 适配器均可接入，不按客户端品牌限制命令。Windows 默认使用本机问题窗口，也可显式选择原生 MCP form；Linux/macOS 根据实际能力使用原生提问或交互终端。只有明确批准才下发，明确不执行才拒绝；关闭、超时、无交互能力或协议错误保留 pending 并记录原因，不自动拒绝或自动执行。客户端自身的安全政策仍有效。"
   },
   "servers": [
     {
-      "url": "__PUBLIC_ORIGIN__/api/ai/v1"
+      "url": "{origin}/api/ai/v1",
+      "variables": {
+        "origin": {
+          "default": "https://monitor.example.com",
+          "description": "安装者的平台 HTTPS 地址"
+        }
+      }
     }
   ],
   "security": [
@@ -21,7 +27,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "so_ai_...",
-        "description": "维护验证后由网页创建的受限令牌。请勿把维护密码发给 AI。"
+        "description": "具名长期委托令牌：读取全部监测，并允许可信客户端报告对本授权命令的确认决定。只交给可信客户端，不交给模型。创建人与时间可审计，手动撤销前有效。"
       }
     },
     "schemas": {
@@ -62,13 +68,13 @@
     "/servers": {
       "get": {
         "operationId": "listAuthorizedServers",
-        "summary": "列出授权服务器与命令通道状态",
+        "summary": "读取全部服务器，自动包含未来新增服务器",
         "responses": {
           "200": {
-            "description": "服务器数组，含 id、platform、commands_available"
+            "description": "服务器数组，包含 id、name、platform、tags、IPv4、last_seen、online、metrics_stale、metrics、commands_available。"
           },
           "401": {
-            "description": "令牌无效或维护授权已结束"
+            "description": "令牌无效或已手动撤销"
           },
           "403": {
             "description": "目标服务器不在授权范围"
@@ -88,7 +94,7 @@
     "/commands": {
       "post": {
         "operationId": "submitCommand",
-        "summary": "提交命令，执行方式由维护人员预设的授权决定",
+        "summary": "提交命令，强制等待人工确认",
         "requestBody": {
           "required": true,
           "content": {
@@ -119,13 +125,13 @@
         },
         "responses": {
           "202": {
-            "description": "命令记录，含 id、status；manual 为 pending，auto 下发后为 dispatching/running。使用 GET /commands/{id} 轮询。"
+            "description": "返回命令记录和id；新任务为pending，由客户端获得人员确认后提交决定。无需返回网页。相同授权、request_id 和相同内容复用原任务，不重复执行。"
           },
           "400": {
             "description": "命令参数无效。不能提交 mode 或 shell 字段。"
           },
           "401": {
-            "description": "令牌无效或维护授权已结束"
+            "description": "令牌无效或已手动撤销"
           },
           "403": {
             "description": "目标服务器不在授权范围"
@@ -159,10 +165,10 @@
         "summary": "查询此令牌提交的命令状态和输出",
         "responses": {
           "200": {
-            "description": "含 status、stdout、stderr、exit_code、error、output_truncated。状态：pending/dispatching/running/succeeded/failed/timed_out/cancelled/rejected/unknown。"
+            "description": "含 status、stdout、stderr、exit_code、error、output_truncated。状态：pending/dispatching/running/succeeded/failed/timed_out/cancelled/rejected/unknown。 可包含 confirmation：确认状态、来源、原因、时间与客户端；pending 不等于人员拒绝。"
           },
           "401": {
-            "description": "令牌无效或维护授权已结束"
+            "description": "令牌无效或已手动撤销"
           },
           "403": {
             "description": "目标服务器不在授权范围"
@@ -202,7 +208,7 @@
             "description": "命令记录；终止为尽力执行，无法回滚已有修改"
           },
           "401": {
-            "description": "令牌无效或维护授权已结束"
+            "description": "令牌无效或已手动撤销"
           },
           "403": {
             "description": "目标服务器不在授权范围"
@@ -215,6 +221,187 @@
           },
           "503": {
             "description": "监控后端暂不可达，不会在边缘执行命令"
+          }
+        }
+      }
+    },
+    "/servers/{server_id}": {
+      "parameters": [
+        {
+          "name": "server_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getServerStatus",
+        "summary": "读取 CPU、内存、全部磁盘、网络、压力、服务与 Docker 状态，无需执行命令",
+        "responses": {
+          "200": {
+            "description": "结构化最新监测信息。last_seen 与 metrics_stale 标记数据时效，失联缓存不可当作实时状态。"
+          },
+          "401": {
+            "description": "令牌无效或已撤销"
+          },
+          "404": {
+            "description": "服务器不存在"
+          }
+        }
+      }
+    },
+    "/servers/{server_id}/history": {
+      "parameters": [
+        {
+          "name": "server_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getMetricHistory",
+        "summary": "读取最多 365 天性能历史",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 365,
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "server_id、days、samples、points；最多 720 个聚合点，包含 from、to、metrics 及峰值。"
+          },
+          "400": {
+            "description": "天数无效"
+          },
+          "401": {
+            "description": "令牌无效或已撤销"
+          },
+          "404": {
+            "description": "服务器不存在"
+          }
+        }
+      }
+    },
+    "/commands/{id}/confirm": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "reportClientCommandConfirmation",
+        "summary": "可信客户端报告绑定原命令的人员确认决定，不作为模型可自批的工具",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "decision",
+                  "command_hash",
+                  "client_name",
+                  "client_version"
+                ],
+                "properties": {
+                  "decision": {
+                    "enum": [
+                      "approve",
+                      "reject",
+                      "defer"
+                    ]
+                  },
+                  "command_hash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "client_name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "client_version": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "confirmation": {
+                    "type": "object",
+                    "required": [
+                      "state",
+                      "source",
+                      "reason_code",
+                      "message"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "approved",
+                          "rejected",
+                          "deferred",
+                          "cancelled",
+                          "timeout",
+                          "unavailable",
+                          "error",
+                          "native_declined"
+                        ]
+                      },
+                      "source": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "reason_code": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "message": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "details": {
+                        "type": "string",
+                        "maxLength": 600
+                      }
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "approve + approved 明确确认后下发；reject + rejected 仅用于人员明确不执行；defer + 其他状态保留 pending 并持久审计原因。旧客户端无结构化 confirmation 的 reject 因语义不明保留 pending。新适配器必须提供 confirmation。审计 source=client、attestation=client_reported，不能证明第三方实际点击人。"
+          },
+          "400": {
+            "description": "参数或命令哈希不匹配"
+          },
+          "401": {
+            "description": "授权无效或撤销"
+          },
+          "404": {
+            "description": "命令不属于本授权"
+          },
+          "409": {
+            "description": "命令已处理或通道不可用"
           }
         }
       }

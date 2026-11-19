@@ -4,7 +4,7 @@ import {createCore} from '../shared/core.mjs';
 import {createRemoteHub} from '../shared/remote.mjs';
 import {assets} from '../generated/assets.mjs';
 import schema from '../shared/heartbeat-schema.sql';
-function sqliteAdapter(storage){return {exec(sql){storage.sql.exec(sql);},prepare(sql){return {all(...values){return [...storage.sql.exec(sql,...values)];},get(...values){return [...storage.sql.exec(sql,...values)][0];},run(...values){const result=storage.sql.exec(sql,...values);return {changes:result.rowsWritten};}};},transaction(fn){return storage.transactionSync(fn);}};}
+function sqliteAdapter(storage){return {exec(sql){storage.sql.exec(sql);},prepare(sql){return {all(...values){return [...storage.sql.exec(sql,...values)];},get(...values){return [...storage.sql.exec(sql,...values)][0];},run(...values){const result=storage.sql.exec(sql,...values);return {changes:result.rowsWritten,lastInsertRowid:[...storage.sql.exec("SELECT last_insert_rowid() AS id")][0].id};}};},transaction(fn){return storage.transactionSync(fn);}};}
 function wrapSocket(socket){return {get readyState(){return socket.readyState;},get bufferedAmount(){return socket.bufferedAmount||0;},send(value){socket.send(value);},close(code,reason){socket.close(code,reason);},on(type,listener){socket.addEventListener(type,event=>listener(type==='message'?event.data:event));}};}
 export class MonitorHub extends DurableObject{
   constructor(ctx,env){super(ctx,env);this.env=env;const db=sqliteAdapter(ctx.storage);initStore(db);db.exec(schema);this.core=createCore({db,env,assets,transportFactory:createRemoteHub});}

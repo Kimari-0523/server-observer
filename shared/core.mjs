@@ -52,13 +52,20 @@ const handler=async(req,res)=>{
     if(p.startsWith('/api/ai/v1/')){
       const g=commands.authenticate(req.headers.authorization);
       if(p==='/api/ai/v1/servers'&&req.method==='GET')return reply(200,commands.servers(g));
+      const state=/^\/api\/ai\/v1\/servers\/([A-Za-z0-9_-]+)(\/history)?$/.exec(p);
+      if(state&&req.method==='GET')return reply(200,state[2]?commands.history(g,state[1],Number(url.searchParams.get('days')||1)):commands.status(g,state[1]));
       if(p==='/api/ai/v1/commands'&&req.method==='POST')return reply(202,commands.submit(g,await body(req)));
       const command=/^\/api\/ai\/v1\/commands\/([a-f0-9-]{36})(\/cancel)?$/.exec(p);
+      const clientConfirm=/^\/api\/ai\/v1\/commands\/([a-f0-9-]{36})\/confirm$/.exec(p);
+      if(clientConfirm&&req.method==='POST')return reply(200,commands.confirmClient(clientConfirm[1],g,await body(req)));
       if(command&&!command[2]&&req.method==='GET')return reply(200,commands.result(command[1],g));
       if(command&&command[2]&&req.method==='POST')return reply(200,commands.cancel(command[1],g));
       return reply(404,{error:'未找到 AI 接口'});
     }
     if(p==='/api/ai/grants'){const user=maintain(req);if(req.method==='GET')return reply(200,commands.listGrants(user));if(req.method==='POST')return reply(201,commands.createGrant(user,await body(req)));}
+    if(p==='/api/ai/audit'&&req.method==='GET')return reply(200,commands.auditList(maintain(req),{before:Number(url.searchParams.get('before')||Number.MAX_SAFE_INTEGER),server_id:url.searchParams.get('server_id')||''}));
+    const auditEntry=/^\/api\/ai\/audit\/(\d+)$/.exec(p);
+    if(auditEntry&&req.method==='GET')return reply(200,commands.auditDetail(maintain(req),Number(auditEntry[1])));
     const revokeGrant=/^\/api\/ai\/grants\/([a-f0-9-]{36})\/revoke$/.exec(p);
     if(revokeGrant&&req.method==='POST'){commands.revokeGrant(revokeGrant[1],maintain(req));return reply(200,{ok:true});}
     if(p==='/api/commands'&&req.method==='GET')return reply(200,commands.list(maintain(req)));
